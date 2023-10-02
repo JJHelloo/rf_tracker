@@ -51,6 +51,7 @@ android {
 
 dependencies {
     implementation ("com.squareup.okhttp3:okhttp:4.11.0")
+    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.0")
     implementation ("com.auth0.android:jwtdecode:2.0.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")

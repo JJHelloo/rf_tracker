@@ -1,129 +1,136 @@
 package com.example.rf_tracker
 
+import android.Manifest
+import android.app.Activity
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.wifi.WifiManager
+import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import android.widget.Button
 import android.widget.EditText
-import androidx.appcompat.app.AppCompatActivity
-import okhttp3.*
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.RequestBody.Companion.toRequestBody
-import java.io.IOException
-import org.json.JSONObject
 import android.widget.Toast
-import android.content.Context
-import android.app.admin.DevicePolicyManager
-import android.content.Intent
-import android.app.Activity
-import android.content.ComponentName
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import org.json.JSONObject
 
 class MainActivity : AppCompatActivity() {
+
     companion object {
-        private const val REQUEST_CODE = 1
+        const val REQUEST_CODE = 1
+        const val MY_PERMISSIONS_REQUEST_READ_PHONE_STATE = 101
     }
+
+    private lateinit var authManager: AuthenticationManager
+    private lateinit var devicePolicyManager: MyDevicePolicyManager
+    private lateinit var locationManager: LocationManager
+    private lateinit var networkManager: NetworkManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val sharedPreferences = getSharedPreferences("MyPreferences", MODE_PRIVATE)
-        val existingToken = sharedPreferences.getString("JWT_TOKEN", null)
-
-        if (existingToken != null) {
-            // Token exists, you might want to validate it or direct the user to the main activity
-            Toast.makeText(this, "Token already exists", Toast.LENGTH_SHORT).show()
-        } else {
-            // No existing token, keep the user at the login screen
-            Toast.makeText(this, "No existing token found", Toast.LENGTH_SHORT).show()
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE)
+            != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.READ_PHONE_STATE),
+                MY_PERMISSIONS_REQUEST_READ_PHONE_STATE
+            )
         }
+
+        networkManager = NetworkManager()
+        locationManager = LocationManager(this, this, networkManager)
+        locationManager.initializeLocationManager()
+
+        authManager = AuthenticationManager(this)
+        devicePolicyManager = MyDevicePolicyManager(this)
+
         val usernameEditText = findViewById<EditText>(R.id.username)
         val passwordEditText = findViewById<EditText>(R.id.password)
         val loginButton = findViewById<Button>(R.id.login_button)
 
-        val devicePolicyManager = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
-        val componentName = ComponentName(this, MyAdmin::class.java)
-
-        if (devicePolicyManager.isDeviceOwnerApp(packageName)) {
-            val packages = arrayOf(packageName)
-            devicePolicyManager.setLockTaskPackages(componentName, packages)
-        } else {
-            Toast.makeText(this, "Not owner of the device", Toast.LENGTH_SHORT).show()
-        }
-
-        if (devicePolicyManager.isLockTaskPermitted(this.packageName)) {
-            startLockTask()
-        } else {
-            Toast.makeText(this, "App is not authorized to lock the device.", Toast.LENGTH_SHORT).show()
-
-            val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
-            intent.putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, componentName)
-            intent.putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "Additional text explaining why we need this permission")
-            startActivityForResult(intent, REQUEST_CODE)
-        }
+        devicePolicyManager.setupDevicePolicy()
 
         loginButton.setOnClickListener {
+            val serialNumber = try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    if (ContextCompat.checkSelfPermission(
+                            this,
+                            Manifest.permission.READ_PHONE_STATE
+                        ) == PackageManager.PERMISSION_GRANTED
+                    ) {
+                        Build.getSerial()
+                    } else {
+                        "Permission not granted"
+                    }
+                } else {
+                    Build.SERIAL
+                }
+            } catch (e: SecurityException) {
+                "Permission not granted"
+            }
+
+            val wifiManager =
+                applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+            val macAddress = wifiManager.connectionInfo.macAddress
+
             val username = usernameEditText.text.toString()
             val password = passwordEditText.text.toString()
 
-            val json = JSONObject()
-            json.put("username", username)
-            json.put("password", password)
-
-            val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())
-            val client = OkHttpClient()
-
-            val request = Request.Builder()
-                .url("http://10.0.2.2:3001/login")
-                .post(body)
-                .build()
-
-            client.newCall(request).enqueue(object : Callback {
-                override fun onFailure(call: Call, e: IOException) {
-                    Log.e("Request Error", "Network error", e)
-                }
-
-                override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
-                    if (response.isSuccessful) {
-                        val respString = response.body?.string()
-                        val jsonResponse = JSONObject(respString)
-
-                        // Log the entire JSON response
-                        Log.d("JSON Response", jsonResponse.toString())
-
-                        // Check if token exists in JSON response
-                        if (jsonResponse.has("token")) {
-                            val token = jsonResponse.getString("token")
-
-                            val sharedPreferences = getSharedPreferences("MyPreferences", MODE_PRIVATE)
-                            val editor = sharedPreferences.edit()
-                            editor.putString("JWT_TOKEN", token)
-                            editor.apply()
-
-                            runOnUiThread {
-                                Toast.makeText(this@MainActivity, "Login successful", Toast.LENGTH_SHORT).show()
-                                stopLockTask()  // Unlock the device upon successful login
-                            }
-                        } else {
-                            Log.e("Response Error", "Token not found in JSON response")
-                            runOnUiThread {
-                                Toast.makeText(this@MainActivity, "Token not found", Toast.LENGTH_SHORT).show()
-                            }
-                        }
-                    } else {
-                        runOnUiThread {
-                            Toast.makeText(this@MainActivity, "Invalid username or password", Toast.LENGTH_SHORT).show()
-                        }
+            authManager.performLogin(
+                username,
+                password,
+                macAddress,
+                serialNumber,
+                {
+                    runOnUiThread {
+                        Toast.makeText(this, "Login successful", Toast.LENGTH_SHORT).show()
+                        devicePolicyManager.unlockDevice()
+                    }
+                },
+                {
+                    runOnUiThread {
+                        Toast.makeText(this, "Invalid username or password", Toast.LENGTH_SHORT)
+                            .show()
                     }
                 }
-
-            })
+            )
         }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (requestCode == REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            // The user allowed the admin rights
+            devicePolicyManager.handleAdminRightsGranted()
         }
         super.onActivityResult(requestCode, resultCode, data)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        when (requestCode) {
+            MY_PERMISSIONS_REQUEST_READ_PHONE_STATE -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(this, "Permission to read phone state granted.", Toast.LENGTH_SHORT)
+                        .show()
+                } else {
+                    Toast.makeText(
+                        this,
+                        "Permission to read phone state denied. The app might not work as expected.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            else -> {
+                locationManager.onRequestPermissionsResult(requestCode, permissions, grantResults)
+            }
+        }
     }
 }
