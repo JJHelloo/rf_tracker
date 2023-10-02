@@ -14,12 +14,12 @@ class AuthenticationManager(private val context: Context) {
         return sharedPreferences.getString("JWT_TOKEN", null)
     }
 
-    // Add MACAddress and SerialNumber as parameters
-    fun performLogin(username: String, password: String, MACAddress: String, SerialNumber: String, onSuccess: () -> Unit, onFailure: () -> Unit) {
+    // Add  SerialNumber as parameters
+    fun performLogin(username: String, password: String, SerialNumber: String, onSuccess: () -> Unit, onFailure: () -> Unit) {
         val json = JSONObject()
         json.put("username", username)
         json.put("password", password)
-        json.put("MACAddress", MACAddress) // Add MAC address to JSON
+//        json.put("MACAddress", MACAddress) // Add MAC address to JSON
         json.put("SerialNumber", SerialNumber) // Add Serial number to JSON
 
         val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaTypeOrNull())

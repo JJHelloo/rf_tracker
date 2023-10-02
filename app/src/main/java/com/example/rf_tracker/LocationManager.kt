@@ -66,13 +66,13 @@ class LocationManager(private val context: Context, private val activity: Activi
 
             val sharedPreferences = context.getSharedPreferences("MyPreferences", Context.MODE_PRIVATE)
             val token = sharedPreferences.getString("JWT_TOKEN", null)  // <-- Fetch the token
-            val username = sharedPreferences.getString("USERNAME", null)  // <-- Fetch the username
+//            val username = sharedPreferences.getString("USERNAME", null)  // <-- Fetch the username
 
             if (token != null) {
                 val locationJson = JSONObject()  // <-- Added this line
                 locationJson.put("latitude", location.latitude)
                 locationJson.put("longitude", location.longitude)
-                locationJson.put("username", username)  // username
+//                locationJson.put("username", username)  // username
                 networkManager.sendJSONToServer(locationJson, "http://10.0.2.2:3001/api/location", token)
             } else {
                 println("Failed to send location: Token is null")

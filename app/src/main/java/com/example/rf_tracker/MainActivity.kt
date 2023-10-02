@@ -1,11 +1,6 @@
 package com.example.rf_tracker
 
 import android.Manifest
-import android.app.Activity
-import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Bundle
 import android.widget.Button
@@ -14,12 +9,11 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import org.json.JSONObject
+import android.content.pm.PackageManager
+
 
 class MainActivity : AppCompatActivity() {
-
     companion object {
-        const val REQUEST_CODE = 1
         const val MY_PERMISSIONS_REQUEST_READ_PHONE_STATE = 101
     }
 
@@ -32,6 +26,13 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        checkPhoneStatePermission()
+
+        initializeManagers()
+        setupUI()
+    }
+
+    private fun checkPhoneStatePermission() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE)
             != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(
@@ -40,97 +41,57 @@ class MainActivity : AppCompatActivity() {
                 MY_PERMISSIONS_REQUEST_READ_PHONE_STATE
             )
         }
+    }
 
+    private fun initializeManagers() {
         networkManager = NetworkManager()
         locationManager = LocationManager(this, this, networkManager)
         locationManager.initializeLocationManager()
-
         authManager = AuthenticationManager(this)
         devicePolicyManager = MyDevicePolicyManager(this)
+        devicePolicyManager.setupDevicePolicy()
+    }
 
+    private fun setupUI() {
         val usernameEditText = findViewById<EditText>(R.id.username)
         val passwordEditText = findViewById<EditText>(R.id.password)
         val loginButton = findViewById<Button>(R.id.login_button)
 
-        devicePolicyManager.setupDevicePolicy()
-
         loginButton.setOnClickListener {
-            val serialNumber = try {
+            handleLogin(usernameEditText.text.toString(), passwordEditText.text.toString())
+        }
+    }
+
+    private fun handleLogin(username: String, password: String) {
+        var serialNumber = getSerialNumber()
+
+        authManager.performLogin(username, password, serialNumber, {
+            runOnUiThread {
+                Toast.makeText(this, "Login successful", Toast.LENGTH_SHORT).show()
+                devicePolicyManager.stopKioskMode()
+            }
+        }, {
+            runOnUiThread {
+                Toast.makeText(this, "Invalid username or password", Toast.LENGTH_SHORT).show()
+            }
+        })
+    }
+
+    private fun getSerialNumber(): String {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
+            return try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    if (ContextCompat.checkSelfPermission(
-                            this,
-                            Manifest.permission.READ_PHONE_STATE
-                        ) == PackageManager.PERMISSION_GRANTED
-                    ) {
-                        Build.getSerial()
-                    } else {
-                        "Permission not granted"
-                    }
+                    Build.getSerial()
                 } else {
                     Build.SERIAL
                 }
             } catch (e: SecurityException) {
-                "Permission not granted"
+                "Unavailable"
             }
-
-            val wifiManager =
-                applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-            val macAddress = wifiManager.connectionInfo.macAddress
-
-            val username = usernameEditText.text.toString()
-            val password = passwordEditText.text.toString()
-
-            authManager.performLogin(
-                username,
-                password,
-                macAddress,
-                serialNumber,
-                {
-                    runOnUiThread {
-                        Toast.makeText(this, "Login successful", Toast.LENGTH_SHORT).show()
-                        devicePolicyManager.unlockDevice()
-                    }
-                },
-                {
-                    runOnUiThread {
-                        Toast.makeText(this, "Invalid username or password", Toast.LENGTH_SHORT)
-                            .show()
-                    }
-                }
-            )
-        }
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if (requestCode == REQUEST_CODE && resultCode == Activity.RESULT_OK) {
-            devicePolicyManager.handleAdminRightsGranted()
-        }
-        super.onActivityResult(requestCode, resultCode, data)
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
-        when (requestCode) {
-            MY_PERMISSIONS_REQUEST_READ_PHONE_STATE -> {
-                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Toast.makeText(this, "Permission to read phone state granted.", Toast.LENGTH_SHORT)
-                        .show()
-                } else {
-                    Toast.makeText(
-                        this,
-                        "Permission to read phone state denied. The app might not work as expected.",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-            else -> {
-                locationManager.onRequestPermissionsResult(requestCode, permissions, grantResults)
-            }
+        } else {
+            Toast.makeText(this, "Permission for reading phone state not granted", Toast.LENGTH_SHORT).show()
+            return "Unavailable"
         }
     }
 }
+
