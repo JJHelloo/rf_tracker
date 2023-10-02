@@ -21,6 +21,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var devicePolicyManager: MyDevicePolicyManager
     private lateinit var locationManager: LocationManager
     private lateinit var networkManager: NetworkManager
+    private lateinit var geofenceManager: GeofenceManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,6 +51,7 @@ class MainActivity : AppCompatActivity() {
         authManager = AuthenticationManager(this)
         devicePolicyManager = MyDevicePolicyManager(this)
         devicePolicyManager.setupDevicePolicy()
+        geofenceManager = GeofenceManager(this)
     }
 
     private fun setupUI() {
@@ -68,6 +70,7 @@ class MainActivity : AppCompatActivity() {
         authManager.performLogin(username, password, serialNumber, {
             runOnUiThread {
                 Toast.makeText(this, "Login successful", Toast.LENGTH_SHORT).show()
+                geofenceManager.registerGeofences()
                 devicePolicyManager.stopKioskMode()
             }
         }, {
