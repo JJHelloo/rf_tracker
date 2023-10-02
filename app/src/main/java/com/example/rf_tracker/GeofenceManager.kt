@@ -98,14 +98,17 @@ class GeofenceTransitionsIntentService : IntentService("GeofenceTransitionsInten
         // Handle the geofence event
         val geofenceTransition = geofencingEvent.geofenceTransition
 
+        // Assuming you can access the Context in this service
+        val devicePolicyManager = MyDevicePolicyManager(this)
+
         when (geofenceTransition) {
             Geofence.GEOFENCE_TRANSITION_ENTER -> {
                 Log.d("GeofenceService", "Entering geofence")
-                // Handle entering geofence here
+                devicePolicyManager.stopKioskMode()  // Stop Kiosk Mode when inside the boundary
             }
             Geofence.GEOFENCE_TRANSITION_EXIT -> {
                 Log.d("GeofenceService", "Exiting geofence")
-                // Handle exiting geofence here
+                devicePolicyManager.startKioskMode()  // Start Kiosk Mode when outside the boundary
             }
             else -> {
                 Log.e("GeofenceService", "Invalid geofence transition type")
@@ -113,6 +116,7 @@ class GeofenceTransitionsIntentService : IntentService("GeofenceTransitionsInten
         }
     }
 }
+
 
 
 
