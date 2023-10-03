@@ -30,7 +30,7 @@ class NetworkManager {
                     if (!response.isSuccessful) {
                         println("Failed to send data: ${response.message}")
                     } else {
-                        println("Data sent successfully: ${response.body?.string()}")
+//                        println("Data sent successfully: ${response.body?.string()}")
                     }
                 }
             } catch (e: Exception) {

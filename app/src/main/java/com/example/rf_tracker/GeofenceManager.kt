@@ -30,7 +30,7 @@ class GeofenceManager(private val context: Context) {
 
         val geofence = Geofence.Builder()
             .setRequestId("WAREHOUSE_GEOFENCE_ID")
-            .setCircularRegion(33.97778, -117.60524, 189f)
+            .setCircularRegion(33.97778, -117.60524, 143.33f)
             .setExpirationDuration(Geofence.NEVER_EXPIRE)
             .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT)
             .build()
@@ -38,12 +38,12 @@ class GeofenceManager(private val context: Context) {
         geofenceList.add(geofence)
 
         val geofencingRequest = GeofencingRequest.Builder()
-            .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
+            .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER or GeofencingRequest.INITIAL_TRIGGER_EXIT)
             .addGeofences(geofenceList)
             .build()
 
         val intent = Intent(context, GeofenceTransitionsIntentService::class.java)
-        val pendingIntent = PendingIntent.getService(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val pendingIntent = PendingIntent.getService(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT)
 
         if (ActivityCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             geofencingClient.addGeofences(geofencingRequest, pendingIntent)?.run {
@@ -77,32 +77,44 @@ class GeofenceManager(private val context: Context) {
     }
 }
 
+
 class GeofenceTransitionsIntentService : IntentService("GeofenceTransitionsIntentService") {
 
     override fun onHandleIntent(intent: Intent?) {
+        if (intent == null) {
+            Log.e("GeofenceService", "Received null intent")
+            return
+        }
+
         Log.d("GeofenceService", "Handling geofence transition")
         val geofencingEvent = GeofencingEvent.fromIntent(intent)
-        if (geofencingEvent.hasError()) {
+
+        if (geofencingEvent?.hasError() == true) {
             val errorMessage = GeofenceStatusCodes.getStatusCodeString(geofencingEvent.errorCode)
             Log.e("GeofenceService", "Error: $errorMessage")
             return
         }
 
-        val geofenceTransition = geofencingEvent.geofenceTransition
-        val devicePolicyManager = MyDevicePolicyManager(this)
+        val geofenceTransition = geofencingEvent?.geofenceTransition ?: return
+        val devicePolicyManager = MyDevicePolicyManager(applicationContext)
 
-        when (geofenceTransition) {
-            Geofence.GEOFENCE_TRANSITION_ENTER -> {
-                Log.d("GeofenceService", "Entering geofence")
-                devicePolicyManager?.stopKioskMode() ?: Log.e("GeofenceService", "devicePolicyManager is null")
+        // Use the static instance of MainActivity
+        MainActivity.instance?.let { mainActivity ->
+            when (geofenceTransition) {
+                Geofence.GEOFENCE_TRANSITION_ENTER -> {
+                    Log.d("GeofenceService", "Entering geofence")
+                    devicePolicyManager.stopKioskMode()
+                }
+                Geofence.GEOFENCE_TRANSITION_EXIT -> {
+                    Log.d("GeofenceService", "Exiting geofence")
+                    devicePolicyManager.startKioskMode()
+                }
+                else -> {
+                    Log.e("GeofenceService", "Invalid geofence transition type: $geofenceTransition")
+                }
             }
-            Geofence.GEOFENCE_TRANSITION_EXIT -> {
-                Log.d("GeofenceService", "Exiting geofence")
-                devicePolicyManager?.startKioskMode() ?: Log.e("GeofenceService", "devicePolicyManager is null")
-            }
-            else -> {
-                Log.e("GeofenceService", "Invalid geofence transition type")
-            }
-        }
+        } ?: Log.e("GeofenceService", "MainActivity instance is null")
     }
 }
+
+

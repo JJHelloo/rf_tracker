@@ -40,18 +40,18 @@ class LocationService : Service() {
             priority = LocationRequest.PRIORITY_HIGH_ACCURACY
         }
 
-        // Initialize LocationCallback
+// Initialize LocationCallback
         locationCallback = object : LocationCallback() {
-            override fun onLocationResult(locationResult: LocationResult?) {
-                locationResult ?: return
+            override fun onLocationResult(locationResult: LocationResult) {  // Removed '?'
+                val location = locationResult.lastLocation ?: return  // Null check
 
                 val sharedPreferences: SharedPreferences = getSharedPreferences("MyPreferences", Context.MODE_PRIVATE)
                 val token = sharedPreferences.getString("JWT_TOKEN", null)
 
                 if (token != null) {
                     val locationJson = JSONObject()
-                    locationJson.put("latitude", locationResult.lastLocation.latitude)
-                    locationJson.put("longitude", locationResult.lastLocation.longitude)
+                    locationJson.put("latitude", location.latitude)  // Replaced with non-nullable location
+                    locationJson.put("longitude", location.longitude)  // Replaced with non-nullable location
                     networkManager.sendJSONToServer(locationJson, "http://10.0.2.2:3001/api/location", token)
                 } else {
                     println("Failed to send location: Token is null")

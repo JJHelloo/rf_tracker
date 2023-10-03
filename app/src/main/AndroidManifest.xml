@@ -9,7 +9,6 @@
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
     <uses-permission android:name="android.permission.READ_PRIVILEGED_PHONE_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
 
     <application
@@ -26,7 +25,6 @@
         <service android:name=".GeofenceTransitionsIntentService"/>
         <service android:name=".LocationService"/>
 
-
         <activity
             android:name=".MainActivity"
             android:theme="@style/AppTheme"
@@ -37,6 +35,11 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        <activity
+            android:name=".AlertDialogActivity"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:launchMode="singleTask">
         </activity>
 
         <receiver android:name=".BootReceiver"

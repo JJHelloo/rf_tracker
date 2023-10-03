@@ -13,8 +13,20 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 
 class MainActivity : AppCompatActivity() {
+    var isInForeground = false
+
+    override fun onResume() {
+        super.onResume()
+        isInForeground = true
+    }
+
+    override fun onPause() {
+        super.onPause()
+        isInForeground = false
+    }
     companion object {
         const val MY_PERMISSIONS_REQUEST_READ_PHONE_STATE = 101
+        var instance: MainActivity? = null  // Static instance variable
     }
 
     private lateinit var authManager: AuthenticationManager
@@ -24,6 +36,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        instance = this  // Store the instance
 
         // Start the LocationService
         Intent(this, LocationService::class.java).also { intent ->
@@ -33,6 +46,11 @@ class MainActivity : AppCompatActivity() {
         checkPhoneStatePermission()
         initializeManagers()
         setupUI()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        instance = null  // Clear the instance
     }
 
     private fun checkPhoneStatePermission() {
@@ -68,12 +86,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun handleLogin(username: String, password: String) {
         val serialNumber = getSerialNumber()
-
         authManager.performLogin(username, password, serialNumber, {
             runOnUiThread {
                 Toast.makeText(this, "Login successful", Toast.LENGTH_SHORT).show()
                 geofenceManager.registerGeofences()
-                devicePolicyManager.stopKioskMode()
+                devicePolicyManager.stopKioskMode()  // Pass 'this' as MainActivity
             }
         }, {
             runOnUiThread {
