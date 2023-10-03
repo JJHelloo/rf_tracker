@@ -3,6 +3,7 @@ package com.example.rf_tracker
 import android.Manifest
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
@@ -36,8 +37,15 @@ class LocationManager(private val context: Context, private val activity: Activi
         } else {
             requestLocationUpdates()
         }
+        // This line starts the LocationService
+        startLocationService()
     }
 
+    // This function starts the LocationService
+    private fun startLocationService() {
+        val serviceIntent = Intent(context, LocationService::class.java)
+        ContextCompat.startForegroundService(context, serviceIntent)
+    }
     fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         if (requestCode == LOCATION_PERMISSION_REQUEST_CODE) {
             if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {

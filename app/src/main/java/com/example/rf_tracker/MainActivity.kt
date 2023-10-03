@@ -1,6 +1,8 @@
 package com.example.rf_tracker
 
 import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.widget.Button
@@ -9,8 +11,6 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import android.content.pm.PackageManager
-
 
 class MainActivity : AppCompatActivity() {
     companion object {
@@ -19,23 +19,28 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var authManager: AuthenticationManager
     private lateinit var devicePolicyManager: MyDevicePolicyManager
-    private lateinit var locationManager: LocationManager
-    private lateinit var networkManager: NetworkManager
     private lateinit var geofenceManager: GeofenceManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        checkPhoneStatePermission()
+        // Start the LocationService
+        Intent(this, LocationService::class.java).also { intent ->
+            startService(intent)
+        }
 
+        checkPhoneStatePermission()
         initializeManagers()
         setupUI()
     }
 
     private fun checkPhoneStatePermission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE)
-            != PackageManager.PERMISSION_GRANTED) {
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.READ_PHONE_STATE
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
             ActivityCompat.requestPermissions(
                 this,
                 arrayOf(Manifest.permission.READ_PHONE_STATE),
@@ -45,9 +50,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initializeManagers() {
-        networkManager = NetworkManager()
-        locationManager = LocationManager(this, this, networkManager)
-        locationManager.initializeLocationManager()
         authManager = AuthenticationManager(this)
         devicePolicyManager = MyDevicePolicyManager(this)
         devicePolicyManager.setupDevicePolicy()
@@ -65,7 +67,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleLogin(username: String, password: String) {
-        var serialNumber = getSerialNumber()
+        val serialNumber = getSerialNumber()
 
         authManager.performLogin(username, password, serialNumber, {
             runOnUiThread {
@@ -81,8 +83,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getSerialNumber(): String {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED) {
-            return try {
+        return if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.READ_PHONE_STATE
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     Build.getSerial()
                 } else {
@@ -92,9 +98,12 @@ class MainActivity : AppCompatActivity() {
                 "Unavailable"
             }
         } else {
-            Toast.makeText(this, "Permission for reading phone state not granted", Toast.LENGTH_SHORT).show()
-            return "Unavailable"
+            Toast.makeText(
+                this,
+                "Permission for reading phone state not granted",
+                Toast.LENGTH_SHORT
+            ).show()
+            "Unavailable"
         }
     }
 }
-
