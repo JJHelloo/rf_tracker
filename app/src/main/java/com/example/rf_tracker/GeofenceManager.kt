@@ -29,8 +29,10 @@ class GeofenceManager(private val context: Context) {
         geofenceList = mutableListOf()
 
         val geofence = Geofence.Builder()
-            .setRequestId("WAREHOUSE_GEOFENCE_ID")
-            .setCircularRegion(33.97778, -117.60524, 143.33f)
+
+
+        .setRequestId("WAREHOUSE_GEOFENCE_ID")
+            .setCircularRegion(33.976253, -117.605278, 5f)
             .setExpirationDuration(Geofence.NEVER_EXPIRE)
             .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT)
             .build()
@@ -103,11 +105,11 @@ class GeofenceTransitionsIntentService : IntentService("GeofenceTransitionsInten
             when (geofenceTransition) {
                 Geofence.GEOFENCE_TRANSITION_ENTER -> {
                     Log.d("GeofenceService", "Entering geofence")
-                    devicePolicyManager.stopKioskMode()
+                    devicePolicyManager.startKioskMode()
                 }
                 Geofence.GEOFENCE_TRANSITION_EXIT -> {
                     Log.d("GeofenceService", "Exiting geofence")
-                    devicePolicyManager.startKioskMode()
+                    devicePolicyManager.stopKioskMode()
                 }
                 else -> {
                     Log.e("GeofenceService", "Invalid geofence transition type: $geofenceTransition")
