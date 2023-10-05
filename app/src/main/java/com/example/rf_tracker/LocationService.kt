@@ -52,7 +52,7 @@ class LocationService : Service() {
                     val locationJson = JSONObject()
                     locationJson.put("latitude", location.latitude)  // Replaced with non-nullable location
                     locationJson.put("longitude", location.longitude)  // Replaced with non-nullable location
-                    networkManager.sendJSONToServer(locationJson, "http://10.0.2.2:3001/api/location", token)
+                    networkManager.sendJSONToServer(locationJson, "http://10.0.2.2:3001/devices/api/location", token)
                 } else {
                     println("Failed to send location: Token is null")
                 }
