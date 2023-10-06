@@ -50,6 +50,7 @@ android {
 }
 
 dependencies {
+    implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
     implementation ("com.google.android.gms:play-services-location:21.0.1")
     implementation ("com.squareup.okhttp3:okhttp:4.11.0")
     implementation ("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.0")

@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
@@ -18,6 +19,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         isInForeground = true
+        devicePolicyManager.startKioskMode()
     }
 
     override fun onPause() {
@@ -94,8 +96,9 @@ class MainActivity : AppCompatActivity() {
         authManager.performLogin(username, password, serialNumber, {
             runOnUiThread {
                 Toast.makeText(this, "Login successful", Toast.LENGTH_SHORT).show()
+                Log.d("KioskMode", "Attempting to stop Kiosk Mode after successful login.")
+                devicePolicyManager.stopKioskMode()
                 geofenceManager.registerGeofences()
-                devicePolicyManager.stopKioskMode()  // Pass 'this' as MainActivity
             }
         }, {
             runOnUiThread {

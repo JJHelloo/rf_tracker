@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.app.admin.DevicePolicyManager
+import android.util.Log
 import android.widget.Toast
 
 class MyDevicePolicyManager(private val context: Context) {
@@ -27,23 +28,28 @@ class MyDevicePolicyManager(private val context: Context) {
 
     fun startKioskMode() {
         MainActivity.instance?.let { mainActivity ->
-            if (mainActivity.isInForeground) { // Add this check
+            Log.d("KioskMode", "Attempting to start Kiosk Mode. Foreground State: ${mainActivity.isInForeground}")
+            if (mainActivity.isInForeground) {
                 mainActivity.startLockTask()
+                Log.d("KioskMode", "Kiosk Mode Started")
             } else {
-                // Handle the case where the app is not in the foreground
+                Log.d("KioskMode", "App not in foreground. Kiosk Mode not started.")
             }
         } ?: showToast("MainActivity instance is null")
     }
 
     fun stopKioskMode() {
         MainActivity.instance?.let { mainActivity ->
-            if (mainActivity.isInForeground) { // Add this check
+            Log.d("KioskMode", "Attempting to stop Kiosk Mode. Foreground State: ${mainActivity.isInForeground}")
+            if (mainActivity.isInForeground) {
                 mainActivity.stopLockTask()
+                Log.d("KioskMode", "Kiosk Mode Stopped")
             } else {
-                // Handle the case where the app is not in the foreground
+                Log.d("KioskMode", "App not in foreground. Kiosk Mode not stopped.")
             }
         } ?: showToast("MainActivity instance is null")
     }
+
 
 
     private fun showToast(message: String) {

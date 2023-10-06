@@ -9,6 +9,7 @@ import android.app.IntentService
 import android.content.pm.PackageManager
 import android.util.Log
 
+
 class GeofenceManager(private val context: Context) {
 
     private lateinit var geofencingClient: GeofencingClient
@@ -82,6 +83,11 @@ class GeofenceManager(private val context: Context) {
 
 class GeofenceTransitionsIntentService : IntentService("GeofenceTransitionsIntentService") {
 
+    private fun isUserLoggedIn(): Boolean {
+        val sharedPreferences = applicationContext.getSharedPreferences("MyPreferences", Context.MODE_PRIVATE)
+        return sharedPreferences.getString("JWT_TOKEN", null) != null
+    }
+
     override fun onHandleIntent(intent: Intent?) {
         if (intent == null) {
             Log.e("GeofenceService", "Received null intent")
@@ -98,24 +104,26 @@ class GeofenceTransitionsIntentService : IntentService("GeofenceTransitionsInten
         }
 
         val geofenceTransition = geofencingEvent?.geofenceTransition ?: return
+
         val devicePolicyManager = MyDevicePolicyManager(applicationContext)
 
-        // Use the static instance of MainActivity
-        MainActivity.instance?.let { mainActivity ->
-            when (geofenceTransition) {
-                Geofence.GEOFENCE_TRANSITION_ENTER -> {
-                    Log.d("GeofenceService", "Entering geofence")
+        when (geofenceTransition) {
+            Geofence.GEOFENCE_TRANSITION_ENTER -> {
+                Log.d("GeofenceService", "Entering geofence")
+                if (!isUserLoggedIn()) {
                     devicePolicyManager.startKioskMode()
                 }
-                Geofence.GEOFENCE_TRANSITION_EXIT -> {
-                    Log.d("GeofenceService", "Exiting geofence")
+            }
+            Geofence.GEOFENCE_TRANSITION_EXIT -> {
+                Log.d("GeofenceService", "Exiting geofence")
+                if (isUserLoggedIn()) {
                     devicePolicyManager.stopKioskMode()
                 }
-                else -> {
-                    Log.e("GeofenceService", "Invalid geofence transition type: $geofenceTransition")
-                }
             }
-        } ?: Log.e("GeofenceService", "MainActivity instance is null")
+            else -> {
+                Log.e("GeofenceService", "Invalid geofence transition type: $geofenceTransition")
+            }
+        }
     }
 }
 
