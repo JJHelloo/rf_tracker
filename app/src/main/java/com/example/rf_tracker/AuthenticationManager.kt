@@ -26,7 +26,7 @@ class AuthenticationManager(private val context: Context) {
         val client = OkHttpClient()
 
         val request = Request.Builder()
-            .url("http://10.0.2.2:3001/auth/login")
+            .url("http://10.0.2.2:3001/auth/appLogin")
             .post(body)
             .build()
 
