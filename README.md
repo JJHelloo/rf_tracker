@@ -1,1 +1,1 @@
-# rf_tracker
+# rf_tracker android app... On boot up locks the device into kiosk mode until the user sign ins. Send the user to the server along with the device they signed into to the server. After signing in send location data every 10 seconds to the server and apply geofencing to close/send an alarm out when crossing the boundry.
