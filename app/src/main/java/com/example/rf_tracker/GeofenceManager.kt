@@ -8,6 +8,14 @@ import com.google.android.gms.location.*
 import android.app.IntentService
 import android.content.pm.PackageManager
 import android.util.Log
+import android.media.MediaPlayer
+import android.media.RingtoneManager
+import android.net.Uri
+import android.os.PowerManager
+import android.media.Ringtone
+import com.google.android.gms.location.Geofence
+import com.google.android.gms.location.GeofencingEvent
+import com.google.android.gms.location.GeofenceStatusCodes
 
 
 class GeofenceManager(private val context: Context) {
@@ -80,11 +88,11 @@ class GeofenceManager(private val context: Context) {
     }
 }
 
-
 class GeofenceTransitionsIntentService : IntentService("GeofenceTransitionsIntentService") {
 
     private fun isUserLoggedIn(): Boolean {
-        val sharedPreferences = applicationContext.getSharedPreferences("MyPreferences", Context.MODE_PRIVATE)
+        val sharedPreferences =
+            applicationContext.getSharedPreferences("MyPreferences", Context.MODE_PRIVATE)
         return sharedPreferences.getString("JWT_TOKEN", null) != null
     }
 
@@ -98,33 +106,43 @@ class GeofenceTransitionsIntentService : IntentService("GeofenceTransitionsInten
         val geofencingEvent = GeofencingEvent.fromIntent(intent)
 
         if (geofencingEvent?.hasError() == true) {
-            val errorMessage = GeofenceStatusCodes.getStatusCodeString(geofencingEvent.errorCode)
+            val errorMessage =
+                GeofenceStatusCodes.getStatusCodeString(geofencingEvent.errorCode)
             Log.e("GeofenceService", "Error: $errorMessage")
             return
         }
 
         val geofenceTransition = geofencingEvent?.geofenceTransition ?: return
 
-        val devicePolicyManager = MyDevicePolicyManager(applicationContext)
+        // Initialize ringtone
+        val uri: Uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+        val ringtone: Ringtone = RingtoneManager.getRingtone(applicationContext, uri)
 
         when (geofenceTransition) {
             Geofence.GEOFENCE_TRANSITION_ENTER -> {
                 Log.d("GeofenceService", "Entering geofence")
                 if (!isUserLoggedIn()) {
-                    devicePolicyManager.startKioskMode()
+                    ringtone.play()
+                    // Uncomment below to enable Kiosk Mode
+                    // devicePolicyManager.startKioskMode()
                 }
             }
+
             Geofence.GEOFENCE_TRANSITION_EXIT -> {
                 Log.d("GeofenceService", "Exiting geofence")
                 if (isUserLoggedIn()) {
-                    devicePolicyManager.stopKioskMode()
+                    ringtone.stop()
+                    // Uncomment below to disable Kiosk Mode
+                    // devicePolicyManager.stopKioskMode()
                 }
             }
+
             else -> {
-                Log.e("GeofenceService", "Invalid geofence transition type: $geofenceTransition")
+                Log.e(
+                    "GeofenceService",
+                    "Invalid geofence transition type: $geofenceTransition"
+                )
             }
         }
     }
 }
-
-

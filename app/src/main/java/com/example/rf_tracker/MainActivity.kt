@@ -91,13 +91,13 @@ class MainActivity : AppCompatActivity() {
 
         // Start kiosk mode here
         // This will ensure kiosk mode is activated when login starts
-        devicePolicyManager.startKioskMode()
+//        devicePolicyManager.startKioskMode()
 
         authManager.performLogin(username, password, serialNumber, {
             runOnUiThread {
                 Toast.makeText(this, "Login successful", Toast.LENGTH_SHORT).show()
                 Log.d("KioskMode", "Attempting to stop Kiosk Mode after successful login.")
-                devicePolicyManager.stopKioskMode()
+//                devicePolicyManager.stopKioskMode()
                 geofenceManager.registerGeofences()
             }
         }, {
